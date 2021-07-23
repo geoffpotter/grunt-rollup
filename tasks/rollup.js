@@ -17,6 +17,8 @@ module.exports = (grunt) => {
             plugins: [],
             // advanced input options
             cache: null,
+            makeAbsoluteExternalsRelative: true,
+            maxParallelFileReads: 20,
             onwarn: null,
             preserveEntrySignatures: "strict",
             strictDeprecations: false,
@@ -82,6 +84,8 @@ module.exports = (grunt) => {
             const inputOptions = (({
                 external,
                 cache,
+                makeAbsoluteExternalsRelative,
+                maxParallelFileReads,
                 onwarn,
                 preserveEntrySignatures,
                 strictDeprecations,
@@ -97,6 +101,8 @@ module.exports = (grunt) => {
             }) => ({
                 external,
                 cache,
+                makeAbsoluteExternalsRelative,
+                maxParallelFileReads,
                 onwarn,
                 preserveEntrySignatures,
                 strictDeprecations,
@@ -186,9 +192,8 @@ module.exports = (grunt) => {
                 systemNullSetters,
             }))(options);
 
-            const isMultipleFiles = Array.isArray(files.src) && files.src.length > 1;
-            const isDestFile = files.dest.indexOf(".") != -1;
-            const isMultipleInput = options.forceDirUse || isMultipleFiles || isDestFile;
+            const useDir = outputOptions.manualChunks || (Array.isArray(files.src) && files.src.length > 1);
+
             return rollup
                 .rollup({
                     ...inputOptions,
@@ -208,12 +213,12 @@ module.exports = (grunt) => {
                     }
                     return bundle.generate({
                         ...outputOptions,
-                        [isMultipleInput ? "dir" : "file"]: files.dest,
+                        [useDir ? "dir" : "file"]: files.dest,
                     });
                 })
                 .then(result => result.output.forEach((output) => {
                     let { code } = output;
-                    const dest = isMultipleInput ? path.join(files.dest, output.fileName) : files.dest;
+                    const dest = useDir ? path.join(files.dest, output.fileName) : files.dest;
                     const dir = path.dirname(dest);
 
                     if (outputOptions.sourcemap === true) {
